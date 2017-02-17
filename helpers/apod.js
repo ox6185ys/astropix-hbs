@@ -8,12 +8,12 @@ var baseURL = 'https://api.nasa.gov/planetary/apod';
 // A callback checks for errors and then calls a method to
 // process the JSON and return a page to the client.
 // If today is provided, fetch today's image,
-// othwerwise, fetch a random image.
+// otherwise, fetch a random image.
 
 function apodRequest(callback, today) {
 
   var queryParam = {};
-  var APIKEY = process.env.APOD_API_KEY;
+  var APIKEY = process.env.APOD_API_KEY;  // Make sure an environment variable is set, containing a valid APOD key
 
   if (today) {
     queryParam = { 'api_key' : APIKEY };
@@ -28,9 +28,9 @@ function apodRequest(callback, today) {
 
     if (!error && apod_response.statusCode == 200){
       //No error, and there is a response from APOD. Expect the response to be a string.
-      console.log("NASA SAYS " + JSON.stringify(body));
-      var apodJSON = JSON.parse(body);   //Conver to 
-      var jsonForTemplate = processJSON(today, apodJSON);
+      console.log("NASA SAYS \n" + JSON.stringify(body));
+      var apodJSON = JSON.parse(body);   //Convert JSON text to a JavaScript object
+      var jsonForTemplate = processAPODresponse(today, apodJSON);  // Rearrange JSON into a more useful format for display in the template
       callback(jsonForTemplate);
     }
 
@@ -45,7 +45,13 @@ function apodRequest(callback, today) {
 }
 
 
-function processJSON(today, apodJSON){
+/* Reformat the response for use in the template.
+* Generates an appropriate credit message,
+* attempts to detect if the response actually is an image (sometimes it's a video)
+* Creates a link back to the image detail page as NASA's site
+* and generates a formatted date for display.  */
+
+function processAPODresponse(today, apodJSON){
 
   //APOD includes a copyright attribute, but only if the image is under copyright.
   //Add a parameter for copyright or image credit, depending if there is a copyright holder
@@ -58,22 +64,34 @@ function processJSON(today, apodJSON){
 
   // Some of the images are videos, which we can't display (at least, in this version of this app)
   // Add a flag so can differentiate between images and other media
+  // Some responses are missing the media_type attribute, so also
+  // check for image file extensions in the URL
+
   if (apodJSON.media_type == 'image') {
     apodJSON.is_image = true;
+  } else {
+    var image_extensions = ['.jpg', '.gif', '.jpeg', '.png'];  //others?
+    for (var ex = 0 ; ex < image_extensions.length ; ex++) {
+      if (apodJSON.url.endsWith(image_extensions[ex])) {
+        apodJSON.is_image = true;
+      }
+    }
   }
 
   //Create the NASA link to the image's page
 
   // The url provided is just for the image resource itself.
-  // Would also like to provide a link to the page about the image.
+  // Would also like to provide a link to the NASA page about the image.
   // For today's image, the link is http://apod.nasa.gov/apod/
-  // For another day's image (e.g Feb 1 2016), the link is http://apod.nasa.gov/apod/ap160201.html
+  // For another day's image (e.g Feb 1 2016), the link includes
+  // the date, in the format http://apod.nasa.gov/apod/ap160201.html
 
   var baseURL = "http://apod.nasa.gov/apod/";
 
   if (today) {
     apodJSON.nasa_url = baseURL;
   }
+
   else {
     var imgDate = moment(apodJSON.date);
     var filenameDate = imgDate.format("YYMMDD");
@@ -82,7 +100,7 @@ function processJSON(today, apodJSON){
     apodJSON.nasa_url = url;
   }
 
-  console.log(JSON.stringify(apodJSON));  //for debugging
+  console.log("AFTER PROCESSING \n" + JSON.stringify(apodJSON));  //for debugging
 
   return apodJSON;
 
