@@ -39,7 +39,7 @@ function apodRequest(callback, today) {
       console.log("Error in JSON request: " + error);
       console.log(apod_response);
       console.log(body);
-      callback(null, Error("Error fetching data"));
+      callback(null, Error("Error fetching data from the APOD service"));
     }
   });
 }
@@ -115,8 +115,9 @@ function randomDateString(){
   var today = moment().subtract(1, 'days');
   var APODstart = moment('1995-06-16');
 
-  //Convert to Unix time - milliseconds since Jan 1, 1970
+  //Convert to Unix time in milliseconds since Jan 1, 1970
   var todayUnix = today.valueOf();
+
   var APODstartUnix = APODstart.valueOf();
 
   //How many milliseconds between APOD start and now?
@@ -133,7 +134,8 @@ function randomDateString(){
 
   //And format this date as "YYYY-MM-DD", the format required in the
   //APOD API calls.
-  return stringRandomDate = randomDate.format('YYYY-MM-DD');
+  return randomDate.format('YYYY-MM-DD');
+
 
 }
 
